@@ -8,6 +8,10 @@
           <div class="movie-info">
             <h3>{{ order.movieTitle }}</h3>
             <p class="text-muted text-sm">{{ order.hallName }} · {{ new Date(order.startTime).toLocaleString() }}</p>
+            <!-- 显示订单过期时间（仅待支付状态） -->
+            <p v-if="order.status === 'PENDING' && order.expiresAt" class="text-muted text-sm">
+              过期时间: {{ new Date(order.expiresAt).toLocaleString() }}
+            </p>
           </div>
           <div class="order-status">
             <span :class="['badge', getStatusClass(order.status)]">
@@ -23,10 +27,17 @@
           </div>
         </div>
 
-        <div class="order-footer" v-if="order.status === 'PENDING'">
+        <div class="order-footer" v-if="order.status === 'PENDING' || order.status === 'PAID'">
           <button
-            @click="() => handlePay(order.id)"
+            @click="() => handleCancel(order.id)"
             class="btn btn-primary btn-sm"
+          >
+            取消订单
+          </button>
+          <button
+              v-if="order.status === 'PENDING'"
+              @click="() => handlePay(order.id)"
+              class="btn btn-primary btn-sm ml-2"
           >
             立即支付
           </button>
@@ -41,16 +52,37 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { getMyOrders, payOrder } from '@/api/seats'
+import { onMounted, onUnmounted, ref } from 'vue'
+import {cancelOrder, getMyOrders, payOrder} from '@/api/seats'
 
 const orders = ref<any[]>([])
+let refreshTimer: number | null = null // 声明refreshTimer变量
 
-onMounted(async () => {
+// 定义loadOrders函数
+const loadOrders = async () => {
   const res = await getMyOrders()
   console.log('后端返回的订单数据:', res.data.data) // 方便调试查看真实数据
   orders.value = res.data.data
+}
+
+onMounted(async () => {
+  // 初始加载订单
+  await loadOrders()
+
+  // 设置定时刷新，每隔60秒刷新一次
+  refreshTimer = window.setInterval(async () => {
+    await loadOrders()
+  }, 60000)
 })
+
+onUnmounted(() => {
+  // 清理定时器
+  if (refreshTimer) {
+    window.clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+})
+
 
 const handlePay = async (orderId: number) => {
   if (confirm('确认支付？')) {
@@ -61,11 +93,26 @@ const handlePay = async (orderId: number) => {
     orders.value = res.data.data
   }
 }
-
+// 添加取消订单的处理函数
+const handleCancel = async (orderId: number) => {
+  if (confirm('确认取消订单？')) {
+    try {
+      await cancelOrder(orderId)
+      alert('订单已取消！')
+      // 重新加载订单列表
+      const res = await getMyOrders()
+      orders.value = res.data.data
+    } catch (error) {
+      console.error('取消订单失败:', error)
+      alert('取消订单失败，请稍后重试')
+    }
+  }
+}
 const getStatusClass = (status: string) => {
   switch (status) {
     case 'PAID': return 'badge-success';
     case 'PENDING': return 'badge-warning';
+    case 'CANCELLED': return 'badge-danger';
     default: return 'badge-danger';
   }
 }
@@ -74,6 +121,7 @@ const getStatusText = (status: string) => {
   switch (status) {
     case 'PAID': return '已支付';
     case 'PENDING': return '待支付';
+    case 'CANCELLED': return '已取消';
     default: return '已取消';
   }
 }

@@ -29,6 +29,7 @@ export interface OrderItem {
   seatNumbers: string[];
   status: "PENDING" | "PAID" | "CANCELLED";
   createdAt: string;
+  expiresAt?: string; // 添加订单过期时间字段
 }
 
 export const getSeatMap = (scheduleId: number) => {
@@ -45,7 +46,10 @@ export const lockSeats = (data: CreateOrderDTO) => {
 export const payOrder = (orderId: number) => {
   return request.put<Result<void>>(`/orders/${orderId}/pay`);
 };
-
+// 添加取消订单的API
+export const cancelOrder = (orderId: number) => {
+  return request.put<Result<void>>(`/orders/${orderId}/cancel`);
+};
 export const getMyOrders = () => {
   return request.get<Result<OrderItem[]>>("/orders");
 };
