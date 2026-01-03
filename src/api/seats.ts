@@ -7,6 +7,7 @@ export interface Seat {
   col: number;
   status: "AVAILABLE" | "LOCKED" | "SOLD";
   type: "NORMAL" | "VIP";
+  price?: number; // 后端返回的座位价格
 }
 
 export interface SeatMap {
@@ -30,6 +31,7 @@ export interface OrderItem {
   status: "PENDING" | "PAID" | "CANCELLED";
   createdAt: string;
   expiresAt?: string; // 添加订单过期时间字段
+  totalAmount?: number; // 后端返回的订单总金额
 }
 
 export const getSeatMap = (scheduleId: number) => {

@@ -46,7 +46,11 @@ const handleLogout = () => {
   </header>
 
   <main>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <Transition name="page" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
   </main>
 </template>
 
@@ -68,5 +72,21 @@ const handleLogout = () => {
 .nav-link:hover,
 .nav-link.active {
   color: white;
+}
+
+/* 页面切换动画 */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.3s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
 }
 </style>
