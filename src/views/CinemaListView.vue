@@ -11,21 +11,6 @@ const date = ref(new Date().toISOString().split('T')[0])
 const loading = ref(true)
 const schedulesLoading = ref(false)
 
-// 获取未来几天的日期
-const getQuickDates = () => {
-  const dates = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() + i)
-    const dateStr = d.toISOString().split('T')[0]
-    const label = i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '后天' : `${d.getMonth() + 1}/${d.getDate()}`
-    dates.push({ date: dateStr, label })
-  }
-  return dates
-}
-
-const quickDates = getQuickDates()
-
 onMounted(async () => {
   try {
     const res = await getCinemas()
@@ -55,8 +40,19 @@ const loadSchedules = async () => {
   }
 }
 
-const selectQuickDate = (dateStr: string) => {
-  date.value = dateStr
+// 切换到上一天
+const goPreviousDay = () => {
+  const currentDate = new Date(date.value)
+  currentDate.setDate(currentDate.getDate() - 1)
+  date.value = currentDate.toISOString().split('T')[0]
+  loadSchedules()
+}
+
+// 切换到下一天
+const goNextDay = () => {
+  const currentDate = new Date(date.value)
+  currentDate.setDate(currentDate.getDate() + 1)
+  date.value = currentDate.toISOString().split('T')[0]
   loadSchedules()
 }
 </script>
@@ -76,20 +72,16 @@ const selectQuickDate = (dateStr: string) => {
         
         <div class="filter-group">
           <label class="form-label">选择日期</label>
-          <input type="date" v-model="date" @change="loadSchedules" class="form-control" />
+          <div class="date-selector">
+            <button @click="goPreviousDay" class="date-nav-btn" title="上一天">
+              ← 上一天
+            </button>
+            <input type="date" v-model="date" @change="loadSchedules" class="form-control date-input" />
+            <button @click="goNextDay" class="date-nav-btn" title="下一天">
+              下一天 →
+            </button>
+          </div>
         </div>
-      </div>
-
-      <!-- 快捷日期选择 -->
-      <div class="quick-dates">
-        <button 
-          v-for="d in quickDates" 
-          :key="d.date"
-          @click="selectQuickDate(d.date)"
-          :class="['quick-date-btn', { active: date === d.date }]"
-        >
-          {{ d.label }}
-        </button>
       </div>
     </div>
 
@@ -154,16 +146,19 @@ const selectQuickDate = (dateStr: string) => {
   flex: 1;
 }
 
-/* 快捷日期选择 */
-.quick-dates {
+/* 日期选择器容器 */
+.date-selector {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
+  align-items: center;
 }
 
-.quick-date-btn {
-  padding: 0.5rem 1rem;
+.date-input {
+  flex: 1;
+}
+
+.date-nav-btn {
+  padding: 0.625rem 1rem;
   border: 2px solid var(--border-color);
   background: white;
   border-radius: var(--radius);
@@ -171,18 +166,18 @@ const selectQuickDate = (dateStr: string) => {
   font-weight: 500;
   transition: all 0.2s;
   color: var(--text-color);
+  white-space: nowrap;
+  font-size: 0.875rem;
 }
 
-.quick-date-btn:hover {
+.date-nav-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  transform: translateY(-2px);
+  background: rgba(99, 102, 241, 0.05);
 }
 
-.quick-date-btn.active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
+.date-nav-btn:active {
+  transform: scale(0.98);
 }
 
 .schedule-grid {
@@ -311,8 +306,13 @@ const selectQuickDate = (dateStr: string) => {
     align-items: stretch;
   }
   
-  .quick-dates {
-    justify-content: center;
+  .date-selector {
+    flex-direction: column;
+  }
+  
+  .date-nav-btn,
+  .date-input {
+    width: 100%;
   }
 }
 </style>
